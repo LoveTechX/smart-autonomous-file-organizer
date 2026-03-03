@@ -42,9 +42,9 @@ from semantic_memory import add_document_memory
 from storage.decision_log import log_decision, print_log_summary
 from preview_mode import preview_mode
 from explanation_engine import explanation_engine
-from confidence_scorer import confidence_scorer, ConfidenceScorer
+from ai.confidence import confidence_scorer, ConfidenceScorer
 from cli_interface import CLIInterface, start_cli_interface
-from safety_guardrails import safety_guardrails
+from safety.guardrails import safety_guardrails
 
 # ======== GLOBAL FLAGS ========
 
