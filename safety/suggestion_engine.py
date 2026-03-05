@@ -7,10 +7,11 @@ import time
 from collections import Counter
 
 from ai.semantic_memory import MEMORY_META_PATH, search_knowledge
+from app.config import BASE_DIR
 
 
-SUGGESTION_HISTORY_PATH = "D:/AUTOMATION/jarvis_search_history.json"
-FILE_ACCESS_PATH = "D:/AUTOMATION/jarvis_file_access.json"
+SUGGESTION_HISTORY_PATH = str(BASE_DIR / "jarvis_search_history.json")
+FILE_ACCESS_PATH = str(BASE_DIR / "jarvis_file_access.json")
 
 MAX_HISTORY_ITEMS = 200
 MAX_FILE_ITEMS = 200

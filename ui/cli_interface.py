@@ -6,6 +6,8 @@ Commands: explain, preview, auto, manual, history, status, etc.
 
 import os
 from typing import Optional, List
+from app.runtime_state import runtime_state
+from app.config import DECISION_LOG_FILE
 from storage.decision_log import (
     get_decision_log,
     get_decisions_by_file,
@@ -19,7 +21,7 @@ class CLIInterface:
 
     def __init__(self):
         self.running = True
-        self.mode = "auto"  # "auto" | "manual" | "preview"
+        self.mode = runtime_state.mode  # "auto" | "manual" | "preview"
 
     def show_banner(self) -> None:
         """Show welcome banner."""
@@ -40,6 +42,7 @@ OPERATIONAL MODES:
   auto              │ Enable automatic mode (files moved silently)
   manual            │ Enable manual mode (all files require approval)
   preview           │ Enable preview mode (show decisions, no moves)
+  review            │ Review queued preview actions and execute approvals
   status            │ Show current operating mode and settings
 
 FILE INTELLIGENCE:
@@ -193,16 +196,19 @@ EXAMPLES:
 
         if new_mode == "auto":
             self.mode = "auto"
+            runtime_state.mode = "auto"
             preview_mode.disable()
             print("✓ Switched to AUTO mode - files will be moved silently")
 
         elif new_mode == "manual":
             self.mode = "manual"
+            runtime_state.mode = "manual"
             preview_mode.disable()
             print("✓ Switched to MANUAL mode - all files require user confirmation")
 
         elif new_mode == "preview":
             self.mode = "preview"
+            runtime_state.mode = "preview"
             preview_mode.enable()
             print("✓ Switched to PREVIEW mode - decisions shown without moving files")
 
@@ -215,7 +221,7 @@ EXAMPLES:
         print("\n" + "=" * 70)
         print("📊 SYSTEM STATUS")
         print("=" * 70)
-        print(f"Operating Mode:     {self.mode.upper()}")
+        print(f"Operating Mode:     {runtime_state.mode.upper()}")
         print(
             f"Preview Mode:       {'ENABLED' if preview_mode.is_enabled() else 'DISABLED'}"
         )
@@ -252,6 +258,9 @@ EXAMPLES:
         elif command == "preview":
             self.handle_mode_change("preview")
 
+        elif command == "review":
+            preview_mode.review_all()
+
         elif command == "status":
             self.handle_status()
 
@@ -275,9 +284,7 @@ EXAMPLES:
                 print("Confidence Threshold (confirm):  60%")
                 print("Confidence Threshold (reject):   40%")
                 print("Semantic Model:                  all-mpnet-base-v2")
-                print(
-                    "Decision Log:                    D:/AUTOMATION/decision_log.json"
-                )
+                print(f"Decision Log:                    {DECISION_LOG_FILE}")
                 print()
             else:
                 print("❌ Unknown config subcommand")

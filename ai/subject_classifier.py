@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-from ai.semantic_classifier import model
+from ai.semantic_classifier import get_model
 
 # ===== SUBJECT CONFIG =====
 # Add new subjects by updating this dictionary:
@@ -69,9 +69,7 @@ subjects = {
 }
 
 subject_names = list(subjects.keys())
-subject_embeddings = model.encode(
-    [subjects[name]["semantic_hint"] for name in subject_names]
-)
+_subject_embeddings = None
 
 MIN_KEYWORD_CONFIDENCE = 2
 PROGRAMMING_EXTENSIONS = {"c", "cpp", "py", "js", "html", "css"}
@@ -126,8 +124,14 @@ def classify_subject(text_chunks, file_name=""):
         return "GENERAL"
 
     semantic_input = keyword_input
-    doc_embedding = model.encode([semantic_input])
-    similarities = cosine_similarity(doc_embedding, subject_embeddings)[0]
+    global _subject_embeddings
+    if _subject_embeddings is None:
+        _subject_embeddings = get_model().encode(
+            [subjects[name]["semantic_hint"] for name in subject_names]
+        )
+
+    doc_embedding = get_model().encode([semantic_input])
+    similarities = cosine_similarity(doc_embedding, _subject_embeddings)[0]
     best_index = np.argmax(similarities)
     return subject_names[best_index]
 

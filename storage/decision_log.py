@@ -8,9 +8,11 @@ import os
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
+from filelock import FileLock
 
+from app.config import DECISION_LOG_FILE, DECISION_LOG_LOCK_FILE
 
-DECISION_LOG_FILE = "D:/AUTOMATION/decision_log.json"
+_DECISION_LOG_LOCK = FileLock(DECISION_LOG_LOCK_FILE)
 
 
 def _load_decision_log() -> list:
@@ -59,7 +61,7 @@ def log_decision(
         details: Additional metadata
     """
 
-    file_name = os.path.basename(file_path)
+    file_name = os.path.basename(file_path) if file_path else ""
     file_size = 0
     if os.path.exists(file_path):
         try:
@@ -67,39 +69,49 @@ def log_decision(
         except:
             pass
 
+    extraction_status = "unknown"
+    if details and isinstance(details, dict):
+        extraction_status = details.get("extraction_status", "unknown")
+
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "file": file_name,
-        "file_path": file_path,
-        "file_size_bytes": file_size,
-        "action": action,
-        "reason": reason,
         "category": category,
         "subject": subject,
-        "destination": destination,
         "confidence": confidence,
+        "extraction_status": extraction_status,
+        "reason": reason,
+        "action": action,
+        "file_path": file_path,
+        "file_size_bytes": file_size,
+        "destination": destination,
         "details": details or {},
     }
 
-    log_entries = _load_decision_log()
-    log_entries.append(log_entry)
-    _save_decision_log(log_entries)
+    # Thread-safe and process-safe append sequence.
+    with _DECISION_LOG_LOCK:
+        log_entries = _load_decision_log()
+        log_entries.append(log_entry)
+        _save_decision_log(log_entries)
 
 
 def get_decision_log() -> list:
     """Retrieve the full decision log."""
-    return _load_decision_log()
+    with _DECISION_LOG_LOCK:
+        return _load_decision_log()
 
 
 def get_decisions_by_action(action: str) -> list:
     """Get all decisions of a specific action type."""
-    log = _load_decision_log()
+    with _DECISION_LOG_LOCK:
+        log = _load_decision_log()
     return [entry for entry in log if entry.get("action") == action]
 
 
 def get_decisions_by_file(file_name: str) -> list:
     """Get all decisions related to a specific file."""
-    log = _load_decision_log()
+    with _DECISION_LOG_LOCK:
+        log = _load_decision_log()
     return [
         entry for entry in log if file_name.lower() in entry.get("file", "").lower()
     ]
@@ -107,12 +119,14 @@ def get_decisions_by_file(file_name: str) -> list:
 
 def clear_decision_log() -> None:
     """Clear the decision log (for testing/reset)."""
-    _save_decision_log([])
+    with _DECISION_LOG_LOCK:
+        _save_decision_log([])
 
 
 def print_log_summary() -> None:
     """Print a summary of the decision log."""
-    log = _load_decision_log()
+    with _DECISION_LOG_LOCK:
+        log = _load_decision_log()
     if not log:
         print("📋 Decision log is empty.")
         return

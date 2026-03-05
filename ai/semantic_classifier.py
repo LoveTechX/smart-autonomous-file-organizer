@@ -3,7 +3,9 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ===== MODEL =====
-model = SentenceTransformer("all-mpnet-base-v2")
+_MODEL_NAME = "all-mpnet-base-v2"
+model = None
+_category_embeddings = None
 
 # ===== CATEGORIES =====
 categories = {
@@ -15,7 +17,22 @@ categories = {
 }
 
 category_names = list(categories.keys())
-category_embeddings = model.encode(list(categories.values()))
+
+
+def get_model():
+    """Lazily load the transformer model only when classification is needed."""
+    global model
+    if model is None:
+        model = SentenceTransformer(_MODEL_NAME)
+    return model
+
+
+def get_category_embeddings():
+    """Cache category embeddings after the first model load."""
+    global _category_embeddings
+    if _category_embeddings is None:
+        _category_embeddings = get_model().encode(list(categories.values()))
+    return _category_embeddings
 
 
 # ===== CLASSIFICATION =====
@@ -63,9 +80,9 @@ def classify_document(text_chunks, file_name=""):
 
     # ===== SEMANTIC FALLBACK =====
     semantic_input = f"{text} {file_name}".strip()
-    doc_embedding = model.encode([semantic_input])
+    doc_embedding = get_model().encode([semantic_input])
 
-    similarities = cosine_similarity(doc_embedding, category_embeddings)[0]
+    similarities = cosine_similarity(doc_embedding, get_category_embeddings())[0]
 
     best_index = np.argmax(similarities)
 

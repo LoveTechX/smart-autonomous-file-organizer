@@ -20,6 +20,14 @@ class PreviewMode:
     def __init__(self, enabled: bool = False):
         self.enabled = enabled
         self.preview_queue = []
+        self._move_executor = None
+
+    def set_move_executor(self, executor) -> None:
+        """
+        Register a callable that performs approved file moves.
+        This keeps preview UI decoupled from the core move pipeline.
+        """
+        self._move_executor = executor
 
     def enable(self) -> None:
         """Enable preview mode."""
@@ -193,6 +201,8 @@ class PreviewMode:
         print(f"\n📂 Reviewing {len(self.preview_queue)} file(s)...")
 
         for entry in self.preview_queue:
+            if entry.get("approved") or entry.get("skipped"):
+                continue
             approved = self.show_preview(entry)
             # Log preview approval decisions for auditability
             if approved:
@@ -209,6 +219,7 @@ class PreviewMode:
                     )
                 except Exception:
                     pass
+                self._execute_approved_entry(entry)
 
         approved = [e for e in self.preview_queue if e.get("approved")]
         skipped = [e for e in self.preview_queue if e.get("skipped")]
@@ -221,6 +232,65 @@ class PreviewMode:
             "approved": approved,
             "skipped": skipped,
         }
+
+    def _execute_approved_entry(self, entry: Dict[str, Any]) -> None:
+        """Execute approved preview move using registered executor or safe fallback."""
+        if self._move_executor:
+            entry["executed"] = bool(self._move_executor(entry))
+            return
+
+        # Fallback path keeps behavior safe even if no executor was registered.
+        src = entry.get("file_path")
+        dst = entry.get("destination")
+        if not src or not dst or not os.path.exists(src):
+            log_decision(
+                file_path=src or "",
+                action="error",
+                reason="Preview approval execution failed - source missing",
+                category=entry.get("category"),
+                subject=entry.get("subject"),
+                destination=dst,
+                confidence=entry.get("confidence"),
+                details={
+                    "mode": "preview",
+                    "extraction_status": entry.get("extraction_status", "unknown"),
+                },
+            )
+            return
+
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        try:
+            os.replace(src, dst)
+            log_decision(
+                file_path=src,
+                action="moved",
+                reason=entry.get("reason", "Approved in preview"),
+                category=entry.get("category"),
+                subject=entry.get("subject"),
+                destination=dst,
+                confidence=entry.get("confidence"),
+                details={
+                    "mode": "preview",
+                    "extraction_status": entry.get("extraction_status", "unknown"),
+                },
+            )
+            entry["executed"] = True
+        except Exception as exc:
+            log_decision(
+                file_path=src,
+                action="error",
+                reason=f"Preview execution move failed: {exc}",
+                category=entry.get("category"),
+                subject=entry.get("subject"),
+                destination=dst,
+                confidence=entry.get("confidence"),
+                details={
+                    "mode": "preview",
+                    "error": str(exc),
+                    "extraction_status": entry.get("extraction_status", "unknown"),
+                },
+            )
+            entry["executed"] = False
 
     def clear_queue(self) -> None:
         """Clear the preview queue."""

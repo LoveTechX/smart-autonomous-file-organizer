@@ -6,18 +6,19 @@ import traceback
 import faiss
 import numpy as np
 
-from ai.semantic_classifier import model
+from ai.semantic_classifier import get_model
+from app.config import SEMANTIC_MEMORY_INDEX, SEMANTIC_MEMORY_META
 
 # ======== STORAGE ========
 
-MEMORY_INDEX_PATH = "D:/AUTOMATION/semantic_memory.index"
-MEMORY_META_PATH = "D:/AUTOMATION/semantic_memory_meta.pkl"
+MEMORY_INDEX_PATH = SEMANTIC_MEMORY_INDEX
+MEMORY_META_PATH = SEMANTIC_MEMORY_META
 
 _lock = threading.Lock()
 
 
 def _embedding_dimension():
-    return model.get_sentence_embedding_dimension()
+    return get_model().get_sentence_embedding_dimension()
 
 
 def _create_index():
@@ -48,7 +49,7 @@ def add_document_memory(file_path, chunks, category, subject):
         if not chunks:
             return 0
 
-        embeddings = model.encode(chunks)
+        embeddings = get_model().encode(chunks)
         vectors = np.asarray(embeddings, dtype="float32")
 
         if vectors.ndim != 2 or vectors.shape[0] == 0:
@@ -93,7 +94,7 @@ def search_knowledge(query, top_k=5):
     if index.ntotal == 0 or len(metadata) == 0:
         return []
 
-    query_vec = model.encode([query]).astype("float32")
+    query_vec = get_model().encode([query]).astype("float32")
     k = min(top_k, index.ntotal)
 
     distances, indices = index.search(query_vec, k)

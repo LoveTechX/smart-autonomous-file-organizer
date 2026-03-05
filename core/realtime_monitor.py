@@ -32,6 +32,8 @@ import json
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from app.config import FILE_LOG_CSV, MOVE_HISTORY_FILE, INPUT_FOLDERS
+from app.runtime_state import runtime_state
 from ai.content_engine import extract_content
 import ai.semantic_classifier as semantic_classifier
 from ai.semantic_classifier import classify_document
@@ -53,12 +55,11 @@ initial_mode = False  # suppress logs during initial scan
 SAFE_MODE = False  # Safe mode for preview + manual approval
 VERBOSE_MODE = True  # Show detailed explanations
 CONFIDENCE_THRESHOLD_AUTO = 0.80  # Auto-move threshold
-app_mode = "auto"  # "auto" | "manual" | "preview"
 
 # ======== LOGGING SYSTEM ========
 
-log_file = "D:/AUTOMATION/file_logs.csv"
-move_history_file = "D:/AUTOMATION/move_history.json"
+log_file = FILE_LOG_CSV
+move_history_file = MOVE_HISTORY_FILE
 
 
 def log_event(category, ext, size, source_folder):
@@ -109,7 +110,7 @@ def log_move_history(file_path, destination, category, subject):
 
 # ======== CONFIGURATION ========
 
-sources = ["D:/TEST_AI/input"]
+sources = INPUT_FOLDERS
 default_folder = "D:/04_REFERENCE"
 
 # ======== CATEGORY INTELLIGENCE ========
@@ -381,9 +382,9 @@ def get_memory_labels(destination):
 
 def _semantic_confidence(chunks, file_name):
     try:
-        if not hasattr(semantic_classifier, "model"):
+        if not hasattr(semantic_classifier, "get_model"):
             return None
-        if not hasattr(semantic_classifier, "category_embeddings"):
+        if not hasattr(semantic_classifier, "get_category_embeddings"):
             return None
         if not hasattr(semantic_classifier, "cosine_similarity"):
             return None
@@ -393,9 +394,9 @@ def _semantic_confidence(chunks, file_name):
         if not semantic_input:
             return None
 
-        doc_embedding = semantic_classifier.model.encode([semantic_input])
+        doc_embedding = semantic_classifier.get_model().encode([semantic_input])
         similarities = semantic_classifier.cosine_similarity(
-            doc_embedding, semantic_classifier.category_embeddings
+            doc_embedding, semantic_classifier.get_category_embeddings()
         )[0]
         return float(max(similarities))
     except Exception:
@@ -491,6 +492,29 @@ def get_safe_destination(destination, file_path, filename):
             counter += 1
 
     return new_path
+
+
+def handle_duplicate(file_path, destination, confidence=None, explanation=None):
+    """
+    Log and report duplicate detection in one place.
+    Reused by all duplicate-check call sites to avoid drift.
+    """
+    log_decision(
+        file_path=file_path,
+        action="duplicate",
+        reason=explanation_engine.duplicate_detected(destination),
+        category=get_category(destination),
+        destination=destination,
+        confidence=confidence,
+        details={
+            "extraction_status": (explanation or {}).get(
+                "extraction_status", "unknown"
+            )
+        },
+    )
+    if not initial_mode:
+        file = os.path.basename(file_path)
+        print(f"⊙ {file}: Duplicate detected → skipped")
 
 
 def safe_move(src, dst, retries=5, delay=2):
@@ -605,14 +629,13 @@ class SmartHandler(FileSystemEventHandler):
         if not os.path.exists(file_path):
             return
 
-        # Debounce events
+        # Lightweight debounce to suppress duplicate filesystem events without
+        # blocking the watchdog worker thread.
         current_time = time.time()
         if file_path in processed_cache:
             if current_time - processed_cache[file_path] < 3:
                 return
         processed_cache[file_path] = current_time
-
-        time.sleep(2)
 
         file = os.path.basename(file_path)
         file_lower = file.lower()
@@ -801,21 +824,7 @@ class SmartHandler(FileSystemEventHandler):
 
             if safe_path is None:
                 # Duplicate detected → automatic duplicate handling
-                log_decision(
-                    file_path=file_path,
-                    action="duplicate",
-                    reason=explanation_engine.duplicate_detected(destination),
-                    category=get_category(destination),
-                    destination=destination,
-                    confidence=confidence,
-                    details={
-                        "extraction_status": explanation.get(
-                            "extraction_status", "unknown"
-                        )
-                    },
-                )
-                if not initial_mode:
-                    print(f"⊙ {file}: Duplicate detected → skipped")
+                handle_duplicate(file_path, destination, confidence, explanation)
                 return
         except Exception as e:
             # If destination creation fails, log and abort
@@ -838,21 +847,7 @@ class SmartHandler(FileSystemEventHandler):
 
             if safe_path is None:
                 # Duplicate detected
-                log_decision(
-                    file_path=file_path,
-                    action="duplicate",
-                    reason=explanation_engine.duplicate_detected(destination),
-                    category=get_category(destination),
-                    destination=destination,
-                    confidence=confidence,
-                    details={
-                        "extraction_status": explanation.get(
-                            "extraction_status", "unknown"
-                        )
-                    },
-                )
-                if not initial_mode:
-                    print(f"⊙ {file}: Duplicate detected → skipped")
+                handle_duplicate(file_path, destination, confidence, explanation)
                 return
 
             # Logging
@@ -867,10 +862,10 @@ class SmartHandler(FileSystemEventHandler):
             # Determine whether this file should be previewed or moved.
             if action_for_confidence == "auto":
                 # High confidence → auto unless user asked for preview/manual
-                if app_mode == "preview" or preview_mode.is_enabled():
+                if runtime_state.mode == "preview" or preview_mode.is_enabled():
                     queue_for_preview = True
                     warn = False
-                elif app_mode == "manual" or SAFE_MODE:
+                elif runtime_state.mode == "manual" or SAFE_MODE:
                     # Manual mode still asks for approval
                     queue_for_preview = False
                     warn = False
@@ -941,7 +936,7 @@ class SmartHandler(FileSystemEventHandler):
                 return
 
             # ===== SAFE MODE / MANUAL APPROVAL =====
-            if app_mode == "manual" or SAFE_MODE:
+            if runtime_state.mode == "manual" or SAFE_MODE:
                 if not initial_mode:
                     show_move_explanation(
                         file,
@@ -1104,6 +1099,66 @@ def start_monitoring_thread():
     thread.start()
     print("✅ Monitoring active in CLI mode")
     return observer
+
+
+def execute_preview_move(entry):
+    """
+    Execute an approved preview item using the same safe move primitives
+    as the realtime pipeline.
+    """
+    src = entry.get("file_path")
+    dst = entry.get("destination")
+    category = entry.get("category")
+    subject = entry.get("subject") or "GENERAL"
+    confidence = entry.get("confidence")
+    reason = entry.get("reason", "Approved in preview mode")
+    extraction_status = entry.get("extraction_status", "unknown")
+
+    if not src or not dst:
+        return False
+    if not os.path.exists(src):
+        log_decision(
+            file_path=src,
+            action="error",
+            reason="Preview approved file missing before move",
+            category=category,
+            subject=subject,
+            destination=dst,
+            confidence=confidence,
+            details={"mode": "preview", "extraction_status": extraction_status},
+        )
+        return False
+
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if not safe_move(src, dst):
+        log_decision(
+            file_path=src,
+            action="error",
+            reason="Preview-approved move failed",
+            category=category,
+            subject=subject,
+            destination=dst,
+            confidence=confidence,
+            details={"mode": "preview", "extraction_status": extraction_status},
+        )
+        return False
+
+    log_decision(
+        file_path=src,
+        action="moved",
+        reason=reason,
+        category=category,
+        subject=subject,
+        destination=dst,
+        confidence=confidence,
+        details={"mode": "preview", "extraction_status": extraction_status},
+    )
+    log_move_history(src, dst, category, subject)
+    return True
+
+
+# Register preview execution bridge so CLI `review` can execute approved moves.
+preview_mode.set_move_executor(execute_preview_move)
 
 
 # ---------------------------------------------------------------

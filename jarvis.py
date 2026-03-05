@@ -19,10 +19,11 @@ except ImportError as e:
 from core.realtime_monitor import initial_scan, undo_last_move
 from ai.semantic_memory import search_knowledge
 from safety.suggestion_engine import SuggestionEngine
+from app.config import BASE_DIR, MOVE_HISTORY_FILE
 
 
-MOVE_HISTORY_PATH = "D:/AUTOMATION/move_history.json"
-PROMPT_HISTORY_PATH = "D:/AUTOMATION/jarvis_prompt_history.txt"
+MOVE_HISTORY_PATH = MOVE_HISTORY_FILE
+PROMPT_HISTORY_PATH = str(BASE_DIR / "jarvis_prompt_history.txt")
 RECENT_LIMIT = 10
 
 
