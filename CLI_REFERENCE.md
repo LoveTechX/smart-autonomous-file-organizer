@@ -1,6 +1,6 @@
-# 🎮 CLI Commands Quick Reference
+# 🎮 Synapse CLI Commands Quick Reference
 
-## 🚀 Start the System
+## 🚀 Start Synapse
 
 ```bash
 # Run with real-time monitoring
@@ -15,16 +15,16 @@ python realtime_organizer.py cli
 ## 🎛️ Mode Commands
 
 ```bash
-organizer> auto
+synapse> auto
 ✓ Switched to AUTO mode - files will be moved silently
 
-organizer> manual  
+synapse> manual  
 ✓ Switched to MANUAL mode - all files require user confirmation
 
-organizer> preview
+synapse> preview
 ✓ Switched to PREVIEW mode - decisions shown without moving files
 
-organizer> status
+synapse> status
 📊 SYSTEM STATUS
 ════════════════════════════════════════════════════════════════
 Operating Mode:     AUTO
@@ -42,7 +42,7 @@ Total Decisions:    42
 
 ### Get Help
 ```bash
-organizer> help
+synapse> help
 ╔════════════════════════════════════════════════════════════════════╗
 ║                           AVAILABLE COMMANDS                       ║
 [Shows all available commands with examples]
@@ -51,7 +51,7 @@ organizer> help
 
 ### Explain a File's Decision
 ```bash
-organizer> explain CPU Scheduling.pdf
+synapse> explain CPU Scheduling.pdf
 📋 Explanation(s) for: CPU Scheduling.pdf
 ════════════════════════════════════════════════════════════════════
 📅 2026-03-02T10:15:23
@@ -62,29 +62,29 @@ organizer> explain CPU Scheduling.pdf
    Confidence:  92%
    Destination: D:/01_COLLEGE/Operating Systems/CPU Scheduling.pdf
 
-organizer> explain "partial name"
+synapse> explain "partial name"
 # Finds all files containing "partial name" in decision log
 ```
 
 ### Search Decisions
 ```bash
-organizer> search operating systems
+synapse> search operating systems
 🔍 Search Results: 3 match(es)
 ════════════════════════════════════════════════════════════════════
 ✓ [2026-03-02] CPU Scheduling.pdf             → Semantic classifier...
 ✓ [2026-03-02] Memory Management.pdf          → Subject classifier...
 ✗ [2026-03-01] abstract_os_paper.docx         → Skipped - insufficient keywords...
 
-organizer> search "lab"
+synapse> search "lab"
 # Find all files with "lab" in filename or reason
 
-organizer> search programming
+synapse> search programming
 # Find all PROGRAMMING category decisions
 ```
 
 ### View History
 ```bash
-organizer> history
+synapse> history
 📜 Recent Decisions (last 10)
 ════════════════════════════════════════════════════════════════════
 ✓ 2026-03-02 | MOVED      | CPU Scheduling.pdf    | COLLEGE
@@ -93,16 +93,16 @@ organizer> history
 ✗ 2026-03-01 | SKIPPED    | config.json           | Reference
 ✓ 2026-03-01 | MOVED      | Flutter App.zip       | Projects
 
-organizer> history 5
+synapse> history 5
 # Shows last 5 decisions
 
-organizer> history 50
+synapse> history 50
 # Shows last 50 decisions
 ```
 
 ### View Summary
 ```bash
-organizer> summary
+synapse> summary
 ════════════════════════════════════════════════════════════════════
 📊 DECISION LOG SUMMARY
 ════════════════════════════════════════════════════════════════════
@@ -123,7 +123,7 @@ Log File:         D:/AUTOMATION/decision_log.json
 
 ### Show Config
 ```bash
-organizer> config show
+synapse> config show
 ⚙️  Configuration:
 
 Confidence Threshold (auto):     80%
@@ -137,7 +137,7 @@ Decision Log:                    D:/AUTOMATION/decision_log.json
 
 ### Threshold Adjustment
 ```bash
-organizer> config threshold
+synapse> config threshold
 # (Feature for future: adjust thresholds interactively)
 ```
 
@@ -173,31 +173,31 @@ Format:   JSON with [file_path, destination, timestamp, category, subject]
 ### Workflow 1: Initial Testing
 ```bash
 python realtime_organizer.py cli
-organizer> summary
+synapse> summary
 # Check initial scan results
 
-organizer> history 20
+synapse> history 20
 # See what was processed
 
-organizer> explain "suspicious_file"
+synapse> explain "suspicious_file"
 # Understand specific decisions
 
-organizer> exit
+synapse> exit
 ```
 
 ### Workflow 2: Preview Before Automation
 ```bash
-organizer> preview
+synapse> preview
 # Enable preview mode
 # Files are queued, not moved
 
-organizer> status
+synapse> status
 # Check what's in preview queue
 
-organizer> explain queued_file
+synapse> explain queued_file
 # Check specific queued files
 
-organizer> exit
+synapse> exit
 # When satisfied, disable preview and enable auto
 organizer> auto
 ```

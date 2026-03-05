@@ -1,4 +1,4 @@
-"""Centralized configuration constants for organizer runtime."""
+"""Centralized configuration constants for Synapse runtime."""
 
 from pathlib import Path
 

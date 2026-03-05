@@ -1,4 +1,4 @@
-# 🚀 QUICK START GUIDE - 5 Minutes to Go
+# 🧠 SYNAPSE QUICK START GUIDE - 5 Minutes to Go
 
 **Goal**: Get your upgraded file organizer running in 5 minutes
 
@@ -49,25 +49,25 @@ python realtime_organizer.py cli
 **Type these commands**:
 
 ```bash
-organizer> help
+synapse> help
 # See all available commands
 
-organizer> status
+synapse> status
 # Check current mode and settings
 
-organizer> summary
+synapse> summary
 # View statistics
 
-organizer> history 10
+synapse> history 10
 # See last 10 decisions
 
-organizer> explain "CPU Scheduling"
+synapse> explain "CPU Scheduling"
 # Understand why that file was moved
 ```
 
 **Expected output**:
 ```
-organizer> summary
+synapse> summary
 ════════════════════════════════════════════════════════════════
 📊 DECISION LOG SUMMARY
 ════════════════════════════════════════════════════════════════
@@ -79,7 +79,7 @@ Total Entries:    42
 Log File:         D:/AUTOMATION/decision_log.json
 ════════════════════════════════════════════════════════════════
 
-organizer> history 3
+synapse> history 3
 📜 Recent Decisions (last 3)
 ════════════════════════════════════════════════════════════════
 ✓ 2026-03-02 | MOVED      | CPU Scheduling.pdf    | COLLEGE
@@ -92,7 +92,7 @@ organizer> history 3
 ## 🔍 Step 3: Understand System Decisions (1 minute)
 
 ```bash
-organizer> explain CPU Scheduling
+synapse> explain CPU Scheduling
 ```
 
 **Output**:
@@ -120,7 +120,7 @@ organizer> explain CPU Scheduling
 ## 👁️ Step 4: Test Preview Mode (1 minute)
 
 ```bash
-organizer> preview
+synapse> preview
 ✓ Preview mode ENABLED - files will NOT be moved
 
 organizer> exit

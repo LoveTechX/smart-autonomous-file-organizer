@@ -436,7 +436,7 @@ CLI interface won't start
 
 ### Files Not Being Moved
 ```
-Check with: organizer> status
+Check with: synapse> status
 → May be in preview/manual mode
 → May have low confidence (<70%)
 → May be blocked by safety rules

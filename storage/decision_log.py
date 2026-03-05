@@ -1,81 +1,161 @@
-"""
-PHASE 1: Decision Logger
-Comprehensive logging of all file processing decisions with full transparency.
-Every file decision is logged to JSON for audit, analysis, and debugging.
-"""
+"""Decision logging facade with SQLite primary storage and JSON fallback."""
 
-import os
 import json
+import logging
+import os
+import sqlite3
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any, Dict, List
+
 from filelock import FileLock
 
 from app.config import DECISION_LOG_FILE, DECISION_LOG_LOCK_FILE
+from storage import database
 
+logger = logging.getLogger(__name__)
 _DECISION_LOG_LOCK = FileLock(DECISION_LOG_LOCK_FILE)
 
+try:
+    database.init_database()
+except Exception:
+    logger.exception("Database init failed in decision_log module")
 
-def _load_decision_log() -> list:
-    """Load existing decision log from JSON file."""
+
+def _load_decision_log_json() -> List[dict]:
+    """Load debug fallback log from JSON."""
     if not os.path.exists(DECISION_LOG_FILE):
         return []
     try:
         with open(DECISION_LOG_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data if isinstance(data, list) else []
-    except Exception as e:
-        print(f"⚠️  Decision log load failed: {e}")
+    except Exception:
+        logger.exception("Decision JSON load failed")
         return []
 
 
-def _save_decision_log(log_entries: list) -> None:
-    """Save decision log to JSON file."""
+def _save_decision_log_json(log_entries: List[dict]) -> None:
+    """Save debug fallback log to JSON."""
     try:
         with open(DECISION_LOG_FILE, "w", encoding="utf-8") as f:
             json.dump(log_entries, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"⚠️  Decision log save failed: {e}")
+    except Exception:
+        logger.exception("Decision JSON save failed")
 
 
-def log_decision(
-    file_path: str,
-    action: str,
-    reason: str,
-    category: Optional[str] = None,
-    subject: Optional[str] = None,
-    destination: Optional[str] = None,
-    confidence: Optional[float] = None,
-    details: Optional[Dict[str, Any]] = None,
-) -> None:
+def _append_decision_log_json(log_entry: Dict[str, Any]) -> None:
+    """Append one record to debug JSON file."""
+    with _DECISION_LOG_LOCK:
+        log_entries = _load_decision_log_json()
+        log_entries.append(log_entry)
+        _save_decision_log_json(log_entries)
+
+
+def _row_to_legacy_entry(row: Any) -> Dict[str, Any]:
+    """Map SQLite row shape to legacy JSON entry shape used by UI."""
+    file_name = (
+        row["file_name"] if isinstance(row, sqlite3.Row) else row.get("file_name")
+    )
+    entry = {
+        "timestamp": row["timestamp"],
+        "file": file_name,
+        "file_name": file_name,
+        "category": row["category"],
+        "subject": row["subject"],
+        "confidence": row["confidence"],
+        "extraction_status": row["extraction_status"],
+        "reason": row["reason"],
+        "action": row["action"],
+        "destination": row["destination"],
+        "file_path": None,
+        "file_size_bytes": None,
+        "details": {"storage": "sqlite"},
+    }
+    return entry
+
+
+def _get_decision_log_from_db() -> List[dict]:
+    conn = None
+    try:
+        conn = database.get_connection()
+        rows = conn.execute(
+            """
+            SELECT
+                timestamp,
+                file_name,
+                category,
+                subject,
+                confidence,
+                action,
+                destination,
+                extraction_status,
+                reason
+            FROM decisions
+            ORDER BY id ASC
+            """
+        ).fetchall()
+        return [_row_to_legacy_entry(row) for row in rows]
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def log_decision(*args, **kwargs) -> None:
     """
     Log a file processing decision with full details.
 
-    Args:
-        file_path: Full path to the file
-        action: "moved" | "skipped" | "duplicate" | "error"
-        reason: Human-readable explanation (e.g., "keyword 'assignment' detected")
-        category: Detected category (COLLEGE, PROGRAMMING, etc.)
-        subject: Detected subject (Operating Systems, etc.)
-        destination: Final destination path
-        confidence: Semantic confidence score (0-1)
-        details: Additional metadata
+    Supported call patterns:
+    1) Legacy style used by existing modules:
+       log_decision(file_path=..., action=..., reason=..., category=..., ...)
+    2) New compact style:
+       log_decision(file_name, category, subject, confidence, action,
+                    destination, extraction_status, reason)
     """
+    if len(args) == 8 and not kwargs:
+        (
+            file_name,
+            category,
+            subject,
+            confidence,
+            action,
+            destination,
+            extraction_status,
+            reason,
+        ) = args
+        file_path = str(file_name or "")
+        details = {"api": "compact"}
+    else:
+        file_path = kwargs.get("file_path", args[0] if len(args) > 0 else "")
+        action = kwargs.get("action", args[1] if len(args) > 1 else "")
+        reason = kwargs.get("reason", args[2] if len(args) > 2 else "")
+        category = kwargs.get("category", args[3] if len(args) > 3 else None)
+        subject = kwargs.get("subject", args[4] if len(args) > 4 else None)
+        destination = kwargs.get("destination", args[5] if len(args) > 5 else None)
+        confidence = kwargs.get("confidence", args[6] if len(args) > 6 else None)
+        details = kwargs.get("details", args[7] if len(args) > 7 else None)
 
-    file_name = os.path.basename(file_path) if file_path else ""
+        extraction_status = "unknown"
+        if details and isinstance(details, dict):
+            extraction_status = details.get("extraction_status", "unknown")
+
+        file_name = os.path.basename(file_path) if file_path else ""
+
     file_size = 0
     if os.path.exists(file_path):
         try:
             file_size = os.path.getsize(file_path)
-        except:
+        except Exception:
             pass
 
-    extraction_status = "unknown"
-    if details and isinstance(details, dict):
-        extraction_status = details.get("extraction_status", "unknown")
+    if len(args) == 8 and not kwargs:
+        file_name = str(file_name or "")
+
+    timestamp = datetime.utcnow().isoformat()
 
     log_entry = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": timestamp,
         "file": file_name,
+        "file_name": file_name,
         "category": category,
         "subject": subject,
         "confidence": confidence,
@@ -87,46 +167,71 @@ def log_decision(
         "destination": destination,
         "details": details or {},
     }
+    decision = {
+        "timestamp": timestamp,
+        "file_name": file_name,
+        "category": category,
+        "subject": subject,
+        "confidence": confidence,
+        "action": action,
+        "destination": destination,
+        "extraction_status": extraction_status,
+        "reason": reason,
+    }
 
-    # Thread-safe and process-safe append sequence.
-    with _DECISION_LOG_LOCK:
-        log_entries = _load_decision_log()
-        log_entries.append(log_entry)
-        _save_decision_log(log_entries)
+    try:
+        database.insert_decision(decision)
+    except Exception:
+        logger.exception("SQLite decision insert failed, falling back to JSON")
+        _append_decision_log_json(log_entry)
 
 
 def get_decision_log() -> list:
-    """Retrieve the full decision log."""
-    with _DECISION_LOG_LOCK:
-        return _load_decision_log()
+    """Retrieve all decisions (SQLite primary, JSON fallback)."""
+    try:
+        return _get_decision_log_from_db()
+    except Exception:
+        logger.exception("SQLite decision read failed, using JSON fallback")
+        with _DECISION_LOG_LOCK:
+            return _load_decision_log_json()
 
 
 def get_decisions_by_action(action: str) -> list:
     """Get all decisions of a specific action type."""
-    with _DECISION_LOG_LOCK:
-        log = _load_decision_log()
+    log = get_decision_log()
     return [entry for entry in log if entry.get("action") == action]
 
 
 def get_decisions_by_file(file_name: str) -> list:
     """Get all decisions related to a specific file."""
-    with _DECISION_LOG_LOCK:
-        log = _load_decision_log()
+    log = get_decision_log()
     return [
-        entry for entry in log if file_name.lower() in entry.get("file", "").lower()
+        entry
+        for entry in log
+        if file_name.lower() in (entry.get("file") or entry.get("file_name") or "").lower()
     ]
 
 
 def clear_decision_log() -> None:
     """Clear the decision log (for testing/reset)."""
+    conn = None
+    try:
+        conn = database.get_connection()
+        conn.execute("DELETE FROM decisions")
+        conn.commit()
+    except Exception:
+        logger.exception("Failed to clear SQLite decisions table")
+    finally:
+        if conn is not None:
+            conn.close()
+
     with _DECISION_LOG_LOCK:
-        _save_decision_log([])
+        _save_decision_log_json([])
 
 
 def print_log_summary() -> None:
     """Print a summary of the decision log."""
-    with _DECISION_LOG_LOCK:
-        log = _load_decision_log()
+    log = get_decision_log()
     if not log:
         print("📋 Decision log is empty.")
         return

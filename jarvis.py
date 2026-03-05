@@ -175,7 +175,9 @@ class JarvisCLI:
             return
 
         for i, item in enumerate(results, 1):
-            cprint(ctext(f"[{i}] {item.get('file_path', 'Unknown file')}", Colors.GREEN))
+            cprint(
+                ctext(f"[{i}] {item.get('file_path', 'Unknown file')}", Colors.GREEN)
+            )
             cprint(f"    Snippet: {_format_snippet(item)}")
             cprint(
                 ctext(
@@ -204,7 +206,11 @@ class JarvisCLI:
                 break
 
         if best is None:
-            cprint(ctext("Found matches, but no existing file path to open.", Colors.YELLOW))
+            cprint(
+                ctext(
+                    "Found matches, but no existing file path to open.", Colors.YELLOW
+                )
+            )
             return
 
         file_path = best["file_path"]
@@ -216,12 +222,12 @@ class JarvisCLI:
             cprint(ctext(f"Failed to open file: {e}", Colors.RED))
 
     def cmd_organize(self, _args):
-        print_header("Organizer")
+        print_header("Synapse")
         try:
             initial_scan()
-            cprint(ctext("Organize scan completed.", Colors.GREEN))
+            cprint(ctext("Synapse scan completed.", Colors.GREEN))
         except Exception as e:
-            cprint(ctext(f"Organizer scan failed: {e}", Colors.RED))
+            cprint(ctext(f"Synapse scan failed: {e}", Colors.RED))
 
     def cmd_undo(self, _args):
         print_header("Undo Last Move")
@@ -252,7 +258,9 @@ class JarvisCLI:
             cprint(ctext(f"[{i}] {timestamp}", Colors.GREEN))
             cprint(f"    From: {src}")
             cprint(f"    To:   {dst}")
-            cprint(ctext(f"    Category: {category} | Subject: {subject}", Colors.MAGENTA))
+            cprint(
+                ctext(f"    Category: {category} | Subject: {subject}", Colors.MAGENTA)
+            )
 
     def cmd_help(self, _args):
         print_header("Commands")

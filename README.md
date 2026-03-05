@@ -1,11 +1,14 @@
-# Smart Autonomous File Organizer
+# 🧠 SYNAPSE — AI Workspace Engine
 
 ## Vision
-To streamline and automate file organization for users, providing a seamless experience through intelligent algorithms and user-friendly interfaces.
+Synapse is an AI-powered developer workspace engine that automatically organizes files, analyzes developer workflows, and reduces mental load by optimizing the workspace environment.
 
-## Problem/Solution
-**Problem:** Managing digital files can be overwhelming, leading to disorganization and wasted time.
-**Solution:** Our Smart Autonomous File Organizer uses AI to automatically categorize and organize files based on user-defined rules and learning algorithms.
+## Features
+**Synapse** delivers intelligent file organization through:
+- **AI-based file classification** using semantic understanding
+- **Real-time file monitoring** with instant categorization
+- **Confidence-based routing** for smart decision-making
+- **SQLite analytics logging** for complete audit trails
 
 ## Core Features
 - 📁 **Automatic File Organization:** Files are sorted into categories automatically.
@@ -17,9 +20,9 @@ To streamline and automate file organization for users, providing a seamless exp
 ![Architecture Diagram](link-to-architecture-diagram)
 
 ## Installation
-To install the Smart Autonomous File Organizer, follow these steps:
-1. Clone the repository: `git clone https://github.com/LoveTechX/smart-autonomous-file-organizer.git`
-2. Navigate to the project directory: `cd smart-autonomous-file-organizer`
+To install Synapse, follow these steps:
+1. Clone the repository: `git clone https://github.com/LoveTechX/synapse.git`
+2. Navigate to the project directory: `cd synapse`
 3. Install dependencies: `npm install`
 
 ## Usage

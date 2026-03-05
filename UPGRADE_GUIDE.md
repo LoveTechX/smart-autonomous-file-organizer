@@ -1,4 +1,4 @@
-# 🚀 Smart Autonomous File Organizer - UPGRADE GUIDE
+# 🚀 🧠 SYNAPSE — AI Workspace Engine - UPGRADE GUIDE
 
 ## Overview
 
@@ -58,14 +58,14 @@ Every file processed is logged with:
 
 **How to use**:
 ```
-organizer> preview
+synapse> preview
 ✓ Preview mode ENABLED - files will NOT be moved
 
 # Now when files are detected:
 👁️  CPU Scheduling.pdf: Added to preview queue
 
 # Review queued files:
-organizer> (system shows preview)
+synapse> (system shows preview)
 
 File:           CPU Scheduling.pdf
 Category:       COLLEGE
@@ -187,9 +187,9 @@ SYSTEM:
 
 **Example Session**:
 ```
-🚀 SMART AUTONOMOUS FILE ORGANIZER - Interactive CLI
+🚀 🧠 SYNAPSE — AI Workspace Engine - Interactive CLI
 ════════════════════════════════════════════════════════════════
-organizer> status
+synapse> status
 📊 SYSTEM STATUS
 ════════════════════════════════════════════════════════════════
 Operating Mode:     AUTO
@@ -200,7 +200,7 @@ Total Decisions:    42
   - Duplicates:    1
 ════════════════════════════════════════════════════════════════
 
-organizer> history 5
+synapse> history 5
 📜 Recent Decisions (last 5)
 ════════════════════════════════════════════════════════════════
 ✓ 2026-03-02 | MOVED      | CPU Scheduling.pdf    | COLLEGE
@@ -209,7 +209,7 @@ organizer> history 5
 ✗ 2026-03-01 | SKIPPED    | config.json           | Reference
 ✓ 2026-03-01 | MOVED      | Flutter App.zip       | Projects
 
-organizer> explain "Operating System"
+synapse> explain "Operating System"
 📋 Explanation(s) for: Operating System
 ══════════════════════════════════════════════════════════════════
 📅 2026-03-02T09:45:12
@@ -220,10 +220,10 @@ organizer> explain "Operating System"
    Confidence:  87%
    Destination: D:/01_COLLEGE/Operating Systems
 
-organizer> preview
+synapse> preview
 ✓ Preview mode ENABLED - files will NOT be moved
 
-organizer> exit
+synapse> exit
 👋 Goodbye!
 ```
 

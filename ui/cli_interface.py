@@ -26,7 +26,7 @@ class CLIInterface:
     def show_banner(self) -> None:
         """Show welcome banner."""
         print("\n" + "=" * 70)
-        print("🚀 SMART AUTONOMOUS FILE ORGANIZER - Interactive CLI")
+        print("🧠 SYNAPSE — AI Workspace Engine - Interactive CLI")
         print("=" * 70)
         print("Type 'help' for available commands")
         print("=" * 70 + "\n")
@@ -302,7 +302,7 @@ EXAMPLES:
 
         while self.running:
             try:
-                user_input = input("organizer> ").strip()
+                user_input = input("synapse> ").strip()
 
                 if not user_input:
                     continue

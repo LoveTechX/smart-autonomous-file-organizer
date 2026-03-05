@@ -1,6 +1,6 @@
 """
-SMART AUTONOMOUS FILE ORGANIZER - UPGRADED WITH FULL TRANSPARENCY & CONTROL
-====================================================================
+🧠 SYNAPSE — AI Workspace Engine - UPGRADED WITH FULL TRANSPARENCY & CONTROL
+====================================================
 
 Phases implemented:
 1. ✓ Decision Logging - All decisions logged to JSON
@@ -507,9 +507,7 @@ def handle_duplicate(file_path, destination, confidence=None, explanation=None):
         destination=destination,
         confidence=confidence,
         details={
-            "extraction_status": (explanation or {}).get(
-                "extraction_status", "unknown"
-            )
+            "extraction_status": (explanation or {}).get("extraction_status", "unknown")
         },
     )
     if not initial_mode:
@@ -1078,6 +1076,7 @@ def initial_scan():
 # helper functions for starting the watchdog observer
 # ---------------------------------------------------------------
 
+
 def start_monitoring():
     """Schedule handler on all source folders and start the observer."""
     handler = SmartHandler()
@@ -1165,11 +1164,12 @@ preview_mode.set_move_executor(execute_preview_move)
 # main entrypoint
 # ---------------------------------------------------------------
 
+
 def main():
     import sys
 
     print("\n" + "=" * 70)
-    print("🚀 SMART AUTONOMOUS FILE ORGANIZER - UPGRADED EDITION")
+    print("🧠 SYNAPSE — AI Workspace Engine - UPGRADED EDITION")
     print("=" * 70)
     print("Phases: Logging | Preview | Explanation | Confidence | CLI | Safety")
     print("=" * 70)
